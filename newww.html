@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WhatsApp-Style Bot</title>
+  <style>
+    :root {
+      --bg: #0b141a;
+      --panel: #111b21;
+      --me: #005c4b;
+      --them: #202c33;
+      --accent: #25d366;
+      --text: #e9edef;
+      --muted: #8696a0;
+    }
+    body {
+      margin: 0; background: #0b141a;
+      font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      display: grid; min-height: 100vh; place-items: center; color: var(--text);
+    }
+    .app {
+      width: 100%; max-width: 880px; height: 100vh; max-height: 760px;
+      background: var(--panel); border-radius: 16px; overflow: hidden;
+      display: grid; grid-template-rows: 64px 1fr 64px;
+    }
+    .top { background: #202c33; display: flex; align-items: center; gap: 12px; padding: 0 16px; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: #2a3942; display: grid; place-items: center; }
+    .chat { padding: 14px; overflow: auto; background: #111b21; }
+    .row { display: flex; margin: 8px 0; }
+    .row.me { justify-content: flex-end; }
+    .bubble { max-width: 72%; padding: 10px 12px; border-radius: 12px; background: var(--them); }
+    .row.me .bubble { background: var(--me); }
+    .time { display: block; text-align: right; font-size: 11px; margin-top: 4px; opacity: .7; }
+    .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .chip { background: transparent; border: 1px solid #2a3942; padding: 6px 10px; border-radius: 999px; cursor: pointer; color: var(--text); }
+    .chip:hover { border-color: var(--accent); color: var(--accent); }
+    .bottom { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 10px; background: #202c33; }
+    input { width: 100%; padding: 12px 14px; border-radius: 999px; border: 1px solid #2a3942; background: #111b21; color: var(--text); }
+    button.send { background: var(--accent); border: 0; padding: 0 18px; border-radius: 999px; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="top">
+      <div class="avatar">WB</div>
+      <div><b>WhatsApp Bot</b><br><small>online</small></div>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <form class="bottom" id="form">
+      <input id="input" type="text" placeholder="Type a message…" />
+      <button class="send" type="submit">Send</button>
+    </form>
+  </div>
+
+  <script>
+    // --- Bot Knowledge Base ---
+    const CONTACTS = {
+      grievances: "For Grievances report kindly contact **Banty Ram DEO**.",
+      accounts:   "For Account Branch reports, please contact **Raj Rani**.",
+      sanitation: "For Sanitation reports, please contact **Onkar**.",
+      meeting:    "For Meeting reports, please contact **Mohit**."
+    };
+
+    const chatEl = document.getElementById('chat');
+    const formEl = document.getElementById('form');
+    const inputEl = document.getElementById('input');
+
+    function timeNow() {
+      const d = new Date();
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function addBubble(text, who = 'bot') {
+      const row = document.createElement('div');
+      row.className = 'row' + (who === 'me' ? ' me' : '');
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = text + `<span class="time">${timeNow()}</span>`;
+      row.appendChild(bubble);
+      chatEl.appendChild(row);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function addQuickReplies() {
+      const wrap = document.createElement('div');
+      wrap.className = 'quick';
+      ["1️⃣ Grievances","2️⃣ Account Branch","3️⃣ Sanitation","4️⃣ Meeting"].forEach(label => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'chip'; b.textContent = label;
+        b.onclick = () => { sendUser(label); botRoute(label); };
+        wrap.appendChild(b);
+      });
+      chatEl.appendChild(wrap);
+      chatEl.scrollTop = chatEl.scrollHeight;
+    }
+
+    function showMenu() {
+      addBubble("Please choose the report type:\n1️⃣ Grievances\n2️⃣ Account Branch\n3️⃣ Sanitation\n4️⃣ Meeting");
+      addQuickReplies();
+    }
+
+    function initialGreet() {
+      addBubble("Hello 👋 Welcome! How can I help you today?");
+      showMenu();
+    }
+
+    function routeToContact(key) {
+      addBubble(CONTACTS[key]);
+    }
+
+    function botRoute(msg) {
+      msg = msg.toLowerCase().trim();
+
+      if (msg.includes("grievances") || msg.includes("1️⃣") || msg === "1") { routeToContact("grievances"); return; }
+      if (msg.includes("account")    || msg.includes("2️⃣") || msg === "2") { routeToContact("accounts");   return; }
+      if (msg.includes("sanitation") || msg.includes("3️⃣") || msg === "3") { routeToContact("sanitation"); return; }
+      if (msg.includes("meeting")    || msg.includes("4️⃣") || msg === "4") { routeToContact("meeting");    return; }
+
+      if (msg.includes("menu") || msg.includes("report")) { showMenu(); return; }
+
+      addBubble("❌ Sorry, I didn’t catch that. Type **Menu** to see options.");
+    }
+
+    function sendUser(text) { addBubble(text, 'me'); }
+
+    formEl.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = inputEl.value.trim();
+      if (!text) return;
+      sendUser(text);
+      inputEl.value = '';
+      setTimeout(() => botRoute(text), 250);
+    });
+
+    initialGreet();
+  </script>
+</body>
+</html>
